@@ -5,8 +5,12 @@ import asyncio
 import logging
 from aiogram import Bot
 from aiogram.types import InputFile
-from config import BOT_TOKEN, ADMIN_ID, MEDIA_FOLDER, BROADCAST_HOURS
+from config import BOT_TOKEN, ADMIN_ID, MEDIA_FOLDER, BROADCAST_TIMES
 from database import get_all_user_ids
+from datetime import datetime, timedelta
+from datetime import datetime
+t = datetime.now() + timedelta(minutes=1)
+BROADCAST_TIMES = [(t.hour, t.minute)]
 
 bot = Bot(token=BOT_TOKEN)
 
@@ -33,7 +37,7 @@ async def send_broadcast_to_all():
         media_path = os.path.join(MEDIA_FOLDER, filename)
         success, failed = 0, 0
 
-        log(f"🚀 Kirim: {filename} - ke {total_users} user")
+        log(f"🚀Kirim: {filename} - ke {total_users} user")
 
         for uid in user_ids:
             try:
@@ -45,7 +49,7 @@ async def send_broadcast_to_all():
                     else:
                         await bot.send_message(uid, text=caption)
                 else:
-                    await bot.send_message(uid, text=caption)  # fallback caption only
+                    await bot.send_message(uid, text=caption)
                 success += 1
             except Exception as e:
                 failed += 1
@@ -53,24 +57,24 @@ async def send_broadcast_to_all():
                     f.write(f"{uid}\n")
                 log(f"❌ {uid} gagal: {e}")
 
-        summary = f"📦 Broadcast [{filename}]:\n✅ {success} sukses\n❌ {failed} gagal"
+        summary = f"📰 Broadcast [{filename}]:\n✅ {success} sukses\n❌ {failed} gagal"
         log(summary)
         await bot.send_message(ADMIN_ID, summary)
 
 async def scheduler():
     sudah_dikirim = set()
     while True:
-        now = datetime.datetime.now()
-        jam = now.hour
+        now = datetime.now()
+        jam_menit = (now.hour, now.minute)
 
-        if jam in BROADCAST_HOURS and jam not in sudah_dikirim:
+        if jam_menit in BROADCAST_TIMES and jam_menit not in sudah_dikirim:
             await send_broadcast_to_all()
-            sudah_dikirim.add(jam)
+            sudah_dikirim.add(jam_menit)
 
-        if jam == 0:
+        if jam_menit == (0, 0):
             sudah_dikirim.clear()
 
-        await asyncio.sleep(60)
+        await asyncio.sleep(30)
 
 async def main():
     log("✅ Bot auto-broadcast aktif.")
